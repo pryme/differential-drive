@@ -19,6 +19,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+# remove test of remote file editing
+
 import rospy
 import roslib
 from std_msgs.msg import Float32
