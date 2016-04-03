@@ -48,7 +48,7 @@ class TwistToMotors():
         self.timeout_ticks = rospy.get_param("~timeout_ticks", 2)
         self.left = 0
         self.right = 0
-        
+                
     #############################################################
     def spin(self):
     #############################################################

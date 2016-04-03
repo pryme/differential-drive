@@ -76,6 +76,10 @@ class DiffTf:
         #### parameters #######
         self.rate = rospy.get_param('~rate',10.0)  # the rate at which to publish the transform
         self.ticks_meter = float(rospy.get_param('ticks_meter', 50))  # The number of wheel encoder ticks per meter of travel
+        self.ticks_offset = float(rospy.get_param('~ticks_offset', 19))  # Wheel ticks added to L, subtr from R to trim heading
+        
+        self.calib_lin = float(rospy.get_param('~calib_lin', 1.0))  # Calibration factor for linear distance
+        self.calib_ang = float(rospy.get_param('~calib_ang', 1.0))  # Calibration factor for angular distance
         self.base_width = float(rospy.get_param('~base_width', 0.245)) # The wheel base width in meters
         
         self.base_frame_id = rospy.get_param('~base_frame_id','base_link') # the name of the base frame of the robot
@@ -110,6 +114,13 @@ class DiffTf:
         rospy.Subscriber("rwheel", Int16, self.rwheelCallback)
         self.odomPub = rospy.Publisher("odom", Odometry, queue_size=10)
         self.odomBroadcaster = TransformBroadcaster()
+
+        # diagnostic TODO
+
+        rospy.loginfo("calib_lin: %s" % self.calib_lin)
+        rospy.loginfo("calib_ang: %s" % self.calib_ang)
+        rospy.loginfo("diff_tf rate: %s" % self.rate)
+        rospy.loginfo("ticks_offset: %s" % self.ticks_offset)
         
     #############################################################################
     def spin(self):
@@ -134,15 +145,17 @@ class DiffTf:
                 d_left = 0
                 d_right = 0
             else:
-                d_left = (self.left - self.enc_left) / self.ticks_meter
-                d_right = (self.right - self.enc_right) / self.ticks_meter
+                d_left = (self.left - self.enc_left) / (self.ticks_meter + self.ticks_offset)
+                d_right = (self.right - self.enc_right) / (self.ticks_meter - self.ticks_offset)
             self.enc_left = self.left
             self.enc_right = self.right
            
             # distance traveled is the average of the two wheels 
             d = ( d_left + d_right ) / 2
+            d = d * self.calib_lin  # calibration correction multiplier
             # this approximation works (in radians) for small angles
             th = ( d_right - d_left ) / self.base_width
+            th = th * self.calib_ang  # calibration correction multiplier; was 1.0375
             # calculate velocities
             self.dx = d / elapsed
             self.dr = th / elapsed
